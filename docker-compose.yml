@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  web-application:
+    container_name: web-application
+    build:
+      dockerfile: Dockerfile
+      target: base
+      context: .
+    command: ["python", "fastapi_service/main.py"]
+    volumes:
+      - "./src/:/usr/app/src"
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
