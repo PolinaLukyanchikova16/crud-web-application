@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   web-application:
@@ -13,4 +13,53 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "8000:80"
+    networks:
+      - crud-web-application
+
+  web-application-db:
+    container_name: web-application-db
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - "web-application-db:/var/lib/postgresql"
+    networks:
+      - crud-web-application
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 5s
+      timeout: 3s
+
+  db-initializer:
+    container_name: db-initializer
+    build:
+      dockerfile: Dockerfile
+      target: base
+      context: .
+    env_file:
+      - .env
+    volumes:
+      - "./src:/usr/app/src"
+      - "./src/db/helper_scripts:/usr/app/helper_scripts"
+      - "./src/db/migrations:/usr/app/alembic"
+    networks:
+      - crud-web-application
+    depends_on:
+      web-application-db:
+        condition: service_healthy
+    command: ["bash", "/usr/app/helper_scripts/migrate_db.sh"]
+
+
+volumes:
+  web-application-db: {}
+
+networks:
+  crud-web-application:
+    external: true
